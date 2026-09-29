@@ -74,55 +74,69 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Define public routes (pages accessible without auth)
-  const publicRoutes = [
-    '/', // Home page with Demo Mode
+  // Define auth routes (pages accessible without authentication)
+  const authRoutes = [
     '/auth/login',
     '/auth/sign-up',
     '/auth/forgot-password',
     '/auth/update-password',
     '/auth/confirm',
+  ];
+  
+  // Define other public routes (non-auth pages that don't require login)
+  const otherPublicRoutes = [
     '/demo-test', // Automated test page
   ];
-  
-  // Define protected routes (require authentication)
-  // NOTE: Currently all features are in main dashboard (/) with tabs
-  // Protected routes are for future separate pages if needed
-  const protectedRoutes: string[] = [
-    // No protected routes yet - main app uses tabs in home page
-    // Future: '/dashboard', '/settings', '/profile'
-  ];
 
-  // Define auth routes (redirect to home if authenticated)
-  const authRoutes = ['/auth/login', '/auth/sign-up'];
-
-  const isPublicRoute = publicRoutes.some((route) =>
-    request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route)
-  );
+  const pathname = request.nextUrl.pathname;
   
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  // Check if this is an auth page
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
   
-  const isAuthRoute = authRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  // Check if this is a public non-auth route
+  const isOtherPublicRoute = otherPublicRoutes.some((route) => pathname.startsWith(route));
   
   // Check if this is an API request
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
+  const isApiRoute = pathname.startsWith('/api/');
+  
+  // Check if this is the root page (exact match only)
+  const isRootPage = pathname === '/';
 
-  // Redirect authenticated users away from auth pages
-  if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // AUTHENTICATED USER BEHAVIOR
+  if (user) {
+    // Redirect authenticated users away from auth pages to main app
+    if (isAuthRoute) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    // Allow access to root page and all other routes
+    return response;
   }
 
-  // For API routes: return JSON 401 for protected APIs (none currently, all public for Demo Mode)
-  // API routes are currently public to support Demo Mode without authentication
-  // If you want to protect specific APIs, add logic here
-  
-  // For protected page routes: redirect unauthenticated users to login
-  if (!user && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+  // UNAUTHENTICATED USER BEHAVIOR
+  if (!user) {
+    // Allow access to auth pages
+    if (isAuthRoute) {
+      return response;
+    }
+    
+    // Allow access to other public routes (like /demo-test)
+    if (isOtherPublicRoute) {
+      return response;
+    }
+    
+    // Allow access to API routes (Demo Mode support)
+    // APIs currently return demo data for unauthenticated users
+    if (isApiRoute) {
+      return response;
+    }
+    
+    // Redirect unauthenticated users from root page to login
+    if (isRootPage) {
+      return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
+    
+    // For any other route, allow access (for assets, etc.)
+    return response;
   }
 
   return response;
