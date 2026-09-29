@@ -82,15 +82,15 @@ export async function middleware(request: NextRequest) {
     '/auth/forgot-password',
     '/auth/update-password',
     '/auth/confirm',
+    '/demo-test', // Automated test page
   ];
   
   // Define protected routes (require authentication)
-  const protectedRoutes = [
-    '/dashboard',
-    '/strategy',
-    '/memory',
-    '/gaps',
-    '/learning',
+  // NOTE: Currently all features are in main dashboard (/) with tabs
+  // Protected routes are for future separate pages if needed
+  const protectedRoutes: string[] = [
+    // No protected routes yet - main app uses tabs in home page
+    // Future: '/dashboard', '/settings', '/profile'
   ];
 
   // Define auth routes (redirect to home if authenticated)

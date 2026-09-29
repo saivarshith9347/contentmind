@@ -73,20 +73,30 @@ With Hindsight:
 ## 🏗️ Architecture
 
 ```
-Browser
+Browser (React/Next.js)
   ↓
-Next.js UI (React Components)
+Next.js Pages & Components (Client-Side)
   ↓
 Next.js API Routes (Server-Side)
-  ↓
-Hindsight Cloud ← Groq LLM
+  ├→ Supabase Cloud (Authentication + PostgreSQL Database with RLS)
+  ├→ Hindsight Cloud (AI Memory & Learning)
+  └→ Groq Cloud (LLM Strategy Generation)
 ```
 
-- **Frontend**: Next.js App Router with TypeScript and Tailwind CSS
-- **Backend**: Next.js API routes (no separate server needed)
-- **Memory**: Hindsight Cloud for persistent agent memory
-- **AI**: Groq API for final language generation
-- **Security**: API keys never exposed to browser
+**Key Points:**
+- **Frontend**: Next.js 15 App Router with React 19, TypeScript, and Tailwind CSS
+- **Backend**: Next.js API routes (`/app/api/*`) - no separate server needed
+- **Authentication**: Supabase Auth with cookie-based sessions via `@supabase/ssr`
+- **Database**: Supabase PostgreSQL with 6 tables and 23 Row Level Security (RLS) policies
+- **Memory**: Hindsight Cloud for persistent agent memory and learning
+- **AI**: Groq API for fast LLM inference (llama-3.3-70b-versatile)
+- **Deployment**: Vercel Edge Network (serverless functions)
+- **Security**: Server-only API keys, client-side RLS protection, no exposed secrets
+
+**Demo Mode:**
+- Unauthenticated users can explore ContentMind with synthetic TechNova demo data
+- No login required to see Strategy Agent, Memory Explorer, and analytics
+- Full authentication available for production use
 
 ## 🧪 Automated Testing
 
@@ -129,26 +139,35 @@ npm install
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env.local` file in the project root:
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
-Edit `.env` and add your API keys:
+Edit `.env.local` and add your API keys:
 
 ```env
-# Hindsight Cloud Configuration
+# Supabase Configuration (Public - Browser-Safe)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key-here
+
+# Hindsight Cloud Configuration (Server-Only Secret)
 HINDSIGHT_API_KEY=your_hindsight_api_key_here
 HINDSIGHT_BASE_URL=https://api.hindsight.vectorize.io
 HINDSIGHT_BANK_ID=contentmind
 
-# Groq API Configuration
+# Groq API Configuration (Server-Only Secret)
 GROQ_API_KEY=your_groq_api_key_here
 ```
 
+**Variable Security:**
+- `NEXT_PUBLIC_*` variables are browser-safe (protected by Supabase RLS)
+- `HINDSIGHT_API_KEY` and `GROQ_API_KEY` are server-only secrets (never exposed to browser)
+
 **Where to get API keys:**
 
+- **Supabase URL & Key**: Go to [Supabase Dashboard](https://supabase.com/dashboard) → Your Project → Settings → API → Copy URL and publishable anon key
 - **Hindsight API Key**: Go to [Hindsight Cloud](https://hindsight.vectorize.io) → Sign up → Connect page → Copy API key
 - **Groq API Key**: Go to [GroqCloud](https://console.groq.com) → Sign up → API Keys → Create new key
 
@@ -271,10 +290,12 @@ ContentMind/
 
 ## 🔒 Security Notes
 
-- ✅ API keys stored in `.env` (never committed to git)
-- ✅ All Hindsight/Groq calls happen server-side
-- ✅ Browser never sees API keys
-- ✅ `.gitignore` includes `.env` files
+- ✅ API keys stored in `.env.local` (never committed to git)
+- ✅ All Hindsight/Groq calls happen server-side via Next.js API routes
+- ✅ Server-only secrets (`HINDSIGHT_API_KEY`, `GROQ_API_KEY`) never exposed to browser
+- ✅ Public Supabase keys protected by Row Level Security (RLS) policies
+- ✅ `.gitignore` includes `.env*.local` files
+- ✅ No separate backend server required - Next.js API routes handle all server-side logic
 
 ## 🧪 Tech Stack
 
@@ -311,13 +332,18 @@ The demo includes 45 synthetic historical posts for **TechNova**, a fictional te
 ## 🐛 Troubleshooting
 
 ### "Hindsight is not configured" error
-- Check that `HINDSIGHT_API_KEY` is set in `.env`
+- Check that `HINDSIGHT_API_KEY` is set in `.env.local`
 - Verify the key is valid
-- Restart the dev server after adding `.env`
+- Restart the dev server after adding `.env.local`
 
 ### "Groq is not configured" error
-- Check that `GROQ_API_KEY` is set in `.env`
+- Check that `GROQ_API_KEY` is set in `.env.local`
 - Verify the key is valid
+- Restart the dev server
+
+### "Supabase is not configured" error
+- Check that `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set in `.env.local`
+- Verify the values are correct from your Supabase project
 - Restart the dev server
 
 ### Build errors
